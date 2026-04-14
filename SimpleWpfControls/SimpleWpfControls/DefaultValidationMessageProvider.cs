@@ -12,7 +12,6 @@ namespace SimpleWpfControls
         /// </summary>
         private static bool IsChinese(CultureInfo culture)
         {
-            if (culture == null) return false;
             var name = culture.Name;
             return name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
         }
