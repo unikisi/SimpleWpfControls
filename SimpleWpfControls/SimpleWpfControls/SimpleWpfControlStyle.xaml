@@ -1,0 +1,62 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:markup="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:simpleWpfControls="clr-namespace:SimpleWpfControls">
+
+    <Style TargetType="{markup:Type simpleWpfControls:ValidatedTextBox}"
+           BasedOn="{StaticResource {markup:Type TextBox}}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{markup:Type simpleWpfControls:ValidatedTextBox}">
+                    <Border x:Name="Border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Grid.Column="0"
+                                          Margin="0"/>
+
+                            <TextBlock x:Name="UnitText"
+                                       Grid.Column="1"
+                                       Margin="0,0,10,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="Gray"
+                                       IsHitTestVisible="False"
+                                       Text="{TemplateBinding Units}"
+                                       Visibility="Visible"/>
+                        </Grid>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Units" Value="{x:Null}">
+                            <Setter TargetName="UnitText" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="Units" Value="">
+                            <Setter TargetName="UnitText" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="UnitText"
+                                    Property="Foreground"
+                                    Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="HasValidationError" Value="True">
+                <Setter Property="BorderBrush" Value="Red"/>
+                <Setter Property="BorderThickness" Value="2"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>
