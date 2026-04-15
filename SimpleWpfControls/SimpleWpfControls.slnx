@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="SimpleWpfControls/SimpleWpfControls.csproj" />
+  <Project Path="Tests/SimpleWpfControlsTests/SimpleWpfControlsTests.csproj" Id="2d8cdbb3-32b9-48ed-bc2f-5f890b813a6c" />
 </Solution>
