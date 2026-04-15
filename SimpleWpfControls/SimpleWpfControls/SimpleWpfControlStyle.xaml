@@ -53,6 +53,10 @@
         </Setter>
 
         <Style.Triggers>
+            <Trigger Property="Validation.HasError" Value="True">
+                <Setter Property="BorderBrush" Value="Red"/>
+                <Setter Property="BorderThickness" Value="2"/>
+            </Trigger>
             <Trigger Property="HasValidationError" Value="True">
                 <Setter Property="BorderBrush" Value="Red"/>
                 <Setter Property="BorderThickness" Value="2"/>

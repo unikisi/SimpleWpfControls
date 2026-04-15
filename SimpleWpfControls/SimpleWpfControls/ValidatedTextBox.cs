@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -13,6 +14,15 @@ namespace SimpleWpfControls
     /// </summary>
     public class ValidatedTextBox : TextBox
     {
+        private sealed class ManualValidationRule : ValidationRule
+        {
+            public override ValidationResult Validate(object value, CultureInfo cultureInfo) =>
+                ValidationResult.ValidResult;
+        }
+
+        private static readonly ManualValidationRule WpfManualValidationRule = new();
+        private bool _validateOnLoadedByToken;
+
         /// <summary>
         /// 鍙€夌殑鍗曚綅鏂囨湰锛岃缃悗浼氬湪杈撳叆妗嗗彸渚у唴閮ㄦ樉绀恒€?
         /// </summary>
@@ -34,6 +44,57 @@ namespace SimpleWpfControls
             DefaultStyleKeyProperty.OverrideMetadata(
                 typeof(ValidatedTextBox),
                 new FrameworkPropertyMetadata(typeof(ValidatedTextBox)));
+        }
+
+        public bool ValidateOnLoaded
+        {
+            get => (bool)GetValue(ValidateOnLoadedProperty);
+            set => SetValue(ValidateOnLoadedProperty, value);
+        }
+
+        public static readonly DependencyProperty ValidateOnLoadedProperty =
+            DependencyProperty.Register(
+                nameof(ValidateOnLoaded),
+                typeof(bool),
+                typeof(ValidatedTextBox),
+                new PropertyMetadata(false));
+
+        public int ValidationToken
+        {
+            get => (int)GetValue(ValidationTokenProperty);
+            set => SetValue(ValidationTokenProperty, value);
+        }
+
+        public static readonly DependencyProperty ValidationTokenProperty =
+            DependencyProperty.Register(
+                nameof(ValidationToken),
+                typeof(int),
+                typeof(ValidatedTextBox),
+                new PropertyMetadata(0, OnValidationTokenChanged));
+
+        private static void OnValidationTokenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var tb = (ValidatedTextBox)d;
+            if (tb.IsLoaded)
+                tb.Validate(false);
+            else
+                tb._validateOnLoadedByToken = true;
+        }
+
+        protected override void OnInitialized(EventArgs e)
+        {
+            base.OnInitialized(e);
+            Loaded += ValidatedTextBox_OnLoaded;
+        }
+
+        private void ValidatedTextBox_OnLoaded(object sender, RoutedEventArgs e)
+        {
+            Loaded -= ValidatedTextBox_OnLoaded;
+            if (ValidateOnLoaded || _validateOnLoadedByToken)
+            {
+                _validateOnLoadedByToken = false;
+                Validate(false);
+            }
         }
 
         #region 输入模式
@@ -470,11 +531,16 @@ namespace SimpleWpfControls
         /// </summary>
         public void Validate()
         {
+            Validate(true);
+        }
+
+        public void Validate(bool showToolTip)
+        {
             ClearError();
 
             if (IsRequired && string.IsNullOrWhiteSpace(Text))
             {
-                SetError(ResolveRequiredMessage());
+                SetError(ResolveRequiredMessage(), showToolTip);
                 return;
             }
 
@@ -485,18 +551,18 @@ namespace SimpleWpfControls
                 {
                     if (len < MinimumLength.Value || len > MaximumLength.Value)
                     {
-                        SetError(ResolveLengthRangeMessage(MinimumLength.Value, MaximumLength.Value));
+                        SetError(ResolveLengthRangeMessage(MinimumLength.Value, MaximumLength.Value), showToolTip);
                         return;
                     }
                 }
                 else if (len < MinimumLength)
                 {
-                    SetError(ResolveMinimumLengthMessage(MinimumLength.Value));
+                    SetError(ResolveMinimumLengthMessage(MinimumLength.Value), showToolTip);
                     return;
                 }
                 else if (len > MaximumLength)
                 {
-                    SetError(ResolveMaximumLengthMessage(MaximumLength.Value));
+                    SetError(ResolveMaximumLengthMessage(MaximumLength.Value), showToolTip);
                     return;
                 }
             }
@@ -505,13 +571,13 @@ namespace SimpleWpfControls
             {
                 if (value < Minimum)
                 {
-                    SetError(ResolveMinimumValueMessage(Minimum.Value));
+                    SetError(ResolveMinimumValueMessage(Minimum.Value), showToolTip);
                     return;
                 }
 
                 if (value > Maximum)
                 {
-                    SetError(ResolveMaximumValueMessage(Maximum.Value));
+                    SetError(ResolveMaximumValueMessage(Maximum.Value), showToolTip);
                     return;
                 }
             }
@@ -521,10 +587,26 @@ namespace SimpleWpfControls
         /// 设置校验错误：更新状态、提示文案，并在控件上方自动弹出 ToolTip。
         /// </summary>
         /// <param name="message">错误提示文案。</param>
-        private void SetError(string message)
+        private void SetError(string message, bool showToolTip)
         {
             HasValidationError = true;
             ValidationMessage = message;
+
+            var bindingExpression = GetBindingExpression(TextProperty);
+            if (bindingExpression != null)
+            {
+                var error = new ValidationError(WpfManualValidationRule, bindingExpression, message, null);
+                Validation.MarkInvalid(bindingExpression, error);
+            }
+
+            if (!showToolTip)
+            {
+                if (ToolTip is ToolTip tt2)
+                    tt2.Content = message;
+                else
+                    ToolTip = message;
+                return;
+            }
 
             if (ToolTip is ToolTip tt)
             {
@@ -557,6 +639,10 @@ namespace SimpleWpfControls
         /// </summary>
         private void ClearError()
         {
+            var bindingExpression = GetBindingExpression(TextProperty);
+            if (bindingExpression != null)
+                Validation.ClearInvalid(bindingExpression);
+
             if (ToolTip is ToolTip tt)
                 tt.IsOpen = false;
             HasValidationError = false;

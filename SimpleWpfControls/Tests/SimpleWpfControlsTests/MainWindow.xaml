@@ -4,9 +4,246 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SimpleWpfControlsTests"
+        xmlns:swc="clr-namespace:SimpleWpfControls;assembly=SimpleWpfControls"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="SimpleWpfControlsTests" Height="720" Width="980">
+    <Window.DataContext>
+        <local:MainViewModel/>
+    </Window.DataContext>
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
+        <Border Grid.Row="0" Padding="12" BorderBrush="#1E000000" BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" Text="Culture:"/>
+                    <ComboBox Width="140"
+                              Margin="8,0,16,0"
+                              ItemsSource="{Binding Cultures}"
+                              SelectedItem="{Binding SelectedCulture}"
+                              DisplayMemberPath="Name"/>
+
+                    <TextBlock VerticalAlignment="Center" Text="MessageProvider:"/>
+                    <ComboBox Width="220"
+                              Margin="8,0,16,0"
+                              ItemsSource="{Binding Providers}"
+                              SelectedItem="{Binding SelectedProvider}"
+                              DisplayMemberPath="DisplayName"/>
+
+                    <Button Margin="0,0,8,0" Padding="10,4" Command="{Binding CheckErrorsCommand}" Content="Check Errors"/>
+                    <Button Margin="0,0,8,0" Padding="10,4" Command="{Binding SetValidSamplesCommand}" Content="Set Valid Samples"/>
+                    <Button Padding="10,4" Command="{Binding SetInvalidSamplesCommand}" Content="Set Invalid Samples"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Padding="12,4"
+                            Command="{Binding NextCommand}"
+                            Content="Next"/>
+                    <TextBlock Margin="16,0,0,0"
+                               VerticalAlignment="Center"
+                               Foreground="#CC000000"
+                               Text="{Binding CurrentCultureText}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Padding="12" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="FormRoot">
+                <TextBlock Margin="0,0,0,10"
+                           Foreground="#99000000"
+                           Text="采用 WPF 原生校验（INotifyDataErrorInfo）：不依赖自定义 Token/Scope。点击 Check Errors 或 Next 时才显示错误；Decimal 模式失焦会按 DecimalPlaces 格式化。"/>
+
+                <GroupBox Header="验证报告（点击 Check Errors 更新）" Padding="12" Margin="0,0,0,12">
+                    <TextBox IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             Height="90"
+                             VerticalScrollBarVisibility="Auto"
+                             Text="{Binding ReportText, Mode=OneWay}"/>
+                </GroupBox>
+
+                <TextBlock Margin="0,0,0,12"
+                           Foreground="#99000000"
+                           Text="{Binding LastActionText}"/>
+
+                <GroupBox Header="Text 模式（必填 / 长度校验 / 自定义文案）" Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="必填 + 长度 2-5（TextChanged）"/>
+                            <swc:ValidatedTextBox x:Name="TextRequiredRange"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Mode="Text"
+                                                 Text="{Binding TextRequiredRange, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                 ValidationTrigger="OnTextChanged"/>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=TextRequiredRange, Path=HasValidationError, StringFormat=HasValidationError: {0}}"/>
+                                <TextBlock Text="{Binding ElementName=TextRequiredRange, Path=ValidationMessage, StringFormat=Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="必填 + 最小长度 3（自定义提示）"/>
+                            <swc:ValidatedTextBox x:Name="TextCustomMessages"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Mode="Text"
+                                                 Text="{Binding TextCustomMessages, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                 ValidationTrigger="OnLostFocus"/>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=TextCustomMessages, Path=HasValidationError, StringFormat=HasValidationError: {0}}"/>
+                                <TextBlock Text="{Binding ElementName=TextCustomMessages, Path=ValidationMessage, StringFormat=Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Integer 模式（输入过滤 / 数值范围 / Trigger 对比）" Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="年龄 0-120（不允许负数）"/>
+                            <swc:ValidatedTextBox x:Name="IntAge"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Mode="Integer"
+                                                 AllowNegative="False"
+                                                 Units="岁"
+                                                 Text="{Binding IntAge, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                 ValidationTrigger="OnTextChanged"/>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=IntAge, Path=HasValidationError, StringFormat=HasValidationError: {0}}"/>
+                                <TextBlock Text="{Binding ElementName=IntAge, Path=ValidationMessage, StringFormat=Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="温度 -50~50（允许负数）"/>
+                            <swc:ValidatedTextBox x:Name="IntTemperature"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Mode="Integer"
+                                                 AllowNegative="True"
+                                                 Units="℃"
+                                                 Text="{Binding IntTemperature, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                 ValidationTrigger="OnTextChanged"/>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=IntTemperature, Path=HasValidationError, StringFormat=HasValidationError: {0}}"/>
+                                <TextBlock Text="{Binding ElementName=IntTemperature, Path=ValidationMessage, StringFormat=Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Top" Text="Trigger 对比（同约束 1-10）"/>
+                            <StackPanel Grid.Column="1">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Width="120" VerticalAlignment="Center" Text="OnTextChanged"/>
+                                    <swc:ValidatedTextBox x:Name="IntTriggerTextChanged"
+                                                         Width="170"
+                                                         Height="30"
+                                                         Mode="Integer"
+                                                         Text="{Binding IntTriggerTextChanged, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                         ValidationTrigger="OnTextChanged"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Width="120" VerticalAlignment="Center" Text="OnLostFocus"/>
+                                    <swc:ValidatedTextBox x:Name="IntTriggerLostFocus"
+                                                         Width="170"
+                                                         Height="30"
+                                                         Mode="Integer"
+                                                         Text="{Binding IntTriggerLostFocus, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                         ValidationTrigger="OnLostFocus"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=IntTriggerTextChanged, Path=ValidationMessage, StringFormat=TextChanged Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding ElementName=IntTriggerLostFocus, Path=ValidationMessage, StringFormat=LostFocus Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Decimal 模式（小数位限制 / 范围 / 失焦格式化 / 单位显示）" Padding="12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="重量 0-100（2 位小数，失焦校验）"/>
+                            <swc:ValidatedTextBox x:Name="DecWeight"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Mode="Decimal"
+                                                 DecimalPlaces="2"
+                                                 Units="kg"
+                                                 Text="{Binding DecWeight, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                 ValidationTrigger="OnLostFocus"/>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=DecWeight, Path=HasValidationError, StringFormat=HasValidationError: {0}}"/>
+                                <TextBlock Text="{Binding ElementName=DecWeight, Path=ValidationMessage, StringFormat=Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="汇率（3 位小数，允许负数）"/>
+                            <swc:ValidatedTextBox x:Name="DecRate"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Mode="Decimal"
+                                                 DecimalPlaces="3"
+                                                 AllowNegative="True"
+                                                 Text="{Binding DecRate, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                                 ValidationTrigger="OnTextChanged"/>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding ElementName=DecRate, Path=HasValidationError, StringFormat=HasValidationError: {0}}"/>
+                                <TextBlock Text="{Binding ElementName=DecRate, Path=ValidationMessage, StringFormat=Message: {0}}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Window>
